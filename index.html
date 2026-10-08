@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Radiation Oncology Radar</title>
+<style>
+:root{
+ --bg:#f4f6f8;--panel:#fff;--ink:#18212b;--muted:#5f6b77;--line:#dfe4e8;--field:#fff;
+ --top:#15202b;--top-ink:#fff;--accent:#173c67;--accent-ink:#fff;--chip-on:#e8eef6;
+ --sci:#1f6feb;--trial:#8250df;--inst:#1a7f37;--news:#bc4c00;--web:#6e7781;
+ font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+ --bg:#0f151b;--panel:#17202a;--ink:#e3e8ed;--muted:#9aa6b2;--line:#2a3541;--field:#111920;
+ --top:#0a0f14;--accent:#7fb0ff;--accent-ink:#0a0f14;--chip-on:#1f2c3b;}}
+:root[data-theme="dark"]{
+ --bg:#0f151b;--panel:#17202a;--ink:#e3e8ed;--muted:#9aa6b2;--line:#2a3541;--field:#111920;
+ --top:#0a0f14;--accent:#7fb0ff;--accent-ink:#0a0f14;--chip-on:#1f2c3b;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink)}
+.top{background:var(--top);color:var(--top-ink);padding:20px 16px}
+.top-in{max-width:1250px;margin:0 auto}
+h1{margin:0;font-size:22px}.sub{opacity:.75;margin-top:4px;font-size:13px}
+.wrap{max-width:1250px;margin:16px auto;padding:0 16px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}
+.lbl{font-size:12px;font-weight:650;display:block;margin-bottom:6px}
+input,select,button{font:inherit;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--field);max-width:100%}
+input[type=checkbox]{padding:0;margin:0 6px 0 0;accent-color:var(--accent)}
+button{cursor:pointer;font-weight:650}
+button:disabled{opacity:.5;cursor:default}
+.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.w100{width:100%}
+fieldset{border:0;padding:0;margin:14px 0 0}
+legend{font-size:12px;font-weight:650;padding:0;margin-bottom:6px;display:flex;gap:10px;align-items:center}
+.mini{font-size:11px;padding:2px 8px;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;border:1px solid var(--line);padding:6px 10px;border-radius:999px;font-size:12px;cursor:pointer;user-select:none}
+.chip:has(input:checked){background:var(--chip-on);border-color:var(--accent)}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.status{font-size:13px;color:var(--muted)}
+.status.err{color:#cf222e}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.bar .left,.bar .right{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.result{padding:14px 0;border-top:1px solid var(--line)}
+.result:first-child{border-top:0}
+.title{font-size:16px;font-weight:700;line-height:1.3}
+.title a{color:var(--accent);text-decoration:none}.title a:hover{text-decoration:underline}
+.meta{font-size:12px;color:var(--muted);margin:5px 0;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+.snippet{font-size:14px;line-height:1.45}
+.badge{display:inline-block;border:1px solid currentColor;border-radius:5px;padding:1px 6px;font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.02em}
+.t-scientific{color:var(--sci)}.t-preprint{color:#9a6700}.t-trial{color:var(--trial)}.t-institutional{color:var(--inst)}.t-news{color:var(--news)}.t-web{color:var(--web)}
+.typechip{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;background:var(--field)}
+.typechip[aria-pressed="true"]{background:var(--chip-on);border-color:var(--accent)}
+.note{font-size:13px;line-height:1.5;color:var(--muted)}
+details summary{cursor:pointer;font-weight:650}
+.gname{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:12px 0 6px;display:flex;gap:8px;align-items:center}
+.chip small{color:var(--muted);margin-left:5px}
+code{font-size:12px}
+@media(max-width:800px){.grid{grid-template-columns:1fr}.bar{flex-direction:column;align-items:stretch}}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+<h1>Radiation Oncology Radar</h1>
+<div class="sub">Radiation oncology only · multilingual · European focus · neutral retrieval, no clinical relevance ranking</div>
+</div></header>
+
+<main class="wrap">
+<section class="panel" id="searchForm">
+ <div class="grid">
+  <div>
+   <label class="lbl" for="q">Topic within radiation oncology <span class="status">(blank = all RT)</span></label>
+   <input id="q" class="w100" placeholder="e.g. SBRT oligometastases, FLASH, prostate hypofractionation">
+  </div>
+  <div>
+   <label class="lbl" for="days">Date window</label>
+   <select id="days" class="w100">
+    <option value="1">Today / last 24 h</option>
+    <option value="2">Last 2 days</option>
+    <option value="7" selected>Last 7 days</option>
+    <option value="30">Last 30 days</option>
+    <option value="365">Last year</option>
+   </select>
+  </div>
+  <div>
+   <label class="lbl" for="limit">Results per source</label>
+   <select id="limit" class="w100">
+    <option>10</option><option selected>25</option><option>50</option><option>100</option>
+   </select>
+  </div>
+ </div>
+
+ <fieldset id="sourceBox">
+  <legend>Sources <button type="button" class="mini" data-all="sourceBox">All</button><button type="button" class="mini" data-none="sourceBox">None</button><span id="srcCount" class="status"></span></legend>
+  <div id="sourceGroups"></div>
+  <label class="lbl" for="extraSites" style="margin-top:10px">Extra sites (comma-separated domains)</label>
+  <input id="extraSites" class="w100" placeholder="e.g. kwf.nl, cancer.dk, oncologie.ro">
+ </fieldset>
+
+ <fieldset id="langBox">
+  <legend>Languages <button type="button" class="mini" data-all="langBox">All</button><button type="button" class="mini" data-none="langBox">None</button><span id="langCount" class="status"></span></legend>
+  <div id="langGroups"></div>
+ </fieldset>
+
+ <div class="controls">
+  <button type="button" class="primary" id="goBtn">Search</button>
+  <span id="status" class="status" role="status" aria-live="polite">Ready.</span>
+ </div>
+</section>
+
+<section class="panel">
+ <div class="bar">
+  <div class="left">
+   <strong id="count">0 results</strong>
+   <span id="windowNote" class="status"></span>
+   <span id="capNote" class="status"></span>
+   <span id="mergedNote" class="status"></span>
+   <button type="button" id="offTopic" class="mini" hidden></button>
+  </div>
+  <div class="right">
+   <input id="filter" type="search" placeholder="Filter results…" aria-label="Filter results">
+   <select id="langFilter" aria-label="Language filter"><option value="">All languages</option></select>
+   <select id="sort" aria-label="Sort order">
+    <option value="date">Newest first</option>
+    <option value="date-asc">Oldest first</option>
+    <option value="source">Source</option>
+    <option value="title">Title</option>
+   </select>
+   <button type="button" id="csvBtn" disabled>CSV</button>
+   <button type="button" id="jsonBtn" disabled>JSON</button>
+  </div>
+ </div>
+ <div id="typeChips" class="chips" style="margin-top:10px"></div>
+ <div id="results" style="margin-top:6px">
+  <p class="note">Press Search. Without a backend, PubMed, Europe PMC, OpenAlex, Crossref, Semantic Scholar and ClinicalTrials.gov are searched live from this page; the other sources need the backend.</p>
+ </div>
+</section>
+
+<section class="panel">
+ <details>
+  <summary>Backend connection</summary>
+  <p class="note">The page sends <code>POST {API_BASE}/search</code> with JSON <code>{query, scope, scope_terms, composed_query, days, from_date, limit, sources, sites, languages}</code>. The backend should AND the topic with the RT terms for each language in <code>scope_terms</code> (a ready-made English version is in <code>composed_query</code>); the page also hides any returned result lacking RT terms. <code>sources</code> lists API connectors (PubMed, OpenAlex, Semantic Scholar, Crossref, CORE, BASE, Mojeek, Exa…; every source tagged "via SearXNG" — Bing, DuckDuckGo, Startpage, Ecosia, Yahoo, MetaGer, Swisscows, Yep, Presearch, Google Scholar and the regional engines — is expected to be queried through a SearXNG instance with that engine enabled; sources tagged "paid", "key" or "subscription" need your own account); <code>sites</code> is a list of <code>{id, domain}</code> to search via <code>site:domain</code> queries through Brave/Google, since most European platforms have no public search API. It expects <code>{"results":[...], "errors":{provider:message}}</code> (<code>errors</code> optional). Result fields used: <code>title, url, doi, source, source_type, language, published, updated, snippet, provider|providers</code>.</p>
+  <label class="lbl" for="api">API base URL</label>
+  <input id="api" type="url" class="w100" placeholder="http://localhost:8000">
+ </details>
+</section>
+</main>
+
+<script>
+const $=s=>document.querySelector(s);
+const store={
+ get(k){try{return localStorage.getItem(k)}catch(e){return null}},
+ set(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+};
+const PREF_KEY="oncologyRadar.prefs.v2";
+const TYPES=["scientific","preprint","trial","institutional","news","web"];
+let data=[],mergedCount=0,controller=null,abortReason="",typeFilter=new Set();
+
+/* ---------- source catalogue ----------
+   [id, label, domain]  — no domain = native API connector in the backend;
+   with domain = searched via site:domain through the web providers (Brave/Google). */
+const SOURCE_GROUPS=[
+ {name:"Web search engines",items:[
+  ["google","Google"],["brave","Brave"],["mojeek","Mojeek (UK, own index)"],
+  ["qwant","Qwant (FR)"],["ecosia","Ecosia (DE)",null,"via SearXNG"],
+  ["bing","Bing",null,"via SearXNG"],["duckduckgo","DuckDuckGo",null,"via SearXNG"],
+  ["startpage","Startpage (NL)",null,"via SearXNG"],["yahoo","Yahoo",null,"via SearXNG"],
+  ["metager","MetaGer (DE)",null,"via SearXNG"],["swisscows","Swisscows (CH)",null,"via SearXNG"],
+  ["yep","Yep",null,"via SearXNG"],["presearch","Presearch",null,"via SearXNG"],
+  ["marginalia","Marginalia",null,"free API"],["kagi","Kagi",null,"paid",true],
+  ["searxng","SearXNG (meta-search)",null,"free"]]},
+ {name:"AI / semantic search",items:[
+  ["exa","Exa",null,"paid",true],["tavily","Tavily",null,"paid",true],
+  ["youcom","You.com",null,"paid",true],["perplexity","Perplexity Sonar",null,"paid",true]]},
+ {name:"Regional engines",items:[
+  ["yandex","Yandex (RU)",null,"via SearXNG"],["seznam","Seznam (CZ)",null,"via SearXNG"],
+  ["naver","Naver (KR)",null,"via SearXNG"],["yahoo_jp","Yahoo! Japan",null,"via SearXNG"],
+  ["baidu","Baidu (CN)",null,"via SearXNG"],["sogou","Sogou (CN)",null,"via SearXNG"],
+  ["daum","Daum (KR)",null,"via SearXNG"]]},
+ {name:"Scholarly databases",items:[
+  ["pubmed","PubMed"],["europe_pmc","Europe PMC"],["openalex","OpenAlex"],
+  ["semantic_scholar","Semantic Scholar"],["crossref","Crossref"],
+  ["core","CORE (UK, open access)"],["base","BASE (Bielefeld)"],["lens","Lens.org",null,"token"],
+  ["gscholar","Google Scholar",null,"via SearXNG"],
+  ["cochrane","Cochrane Library","cochranelibrary.com"],
+  ["scopus","Scopus",null,"key",true],["wos","Web of Science",null,"subscription",true],
+  ["dimensions","Dimensions",null,"key",true]]},
+ {name:"Preprint servers",items:[
+  ["medrxiv","medRxiv"],["biorxiv","bioRxiv"],["arxiv","arXiv (med-ph)"],
+  ["researchsquare","Research Square","researchsquare.com"]]},
+ {name:"Trial registries (global)",items:[
+  ["clinicaltrials","ClinicalTrials.gov"],["ictrp","WHO ICTRP","trialsearch.who.int"],
+  ["anzctr","ANZCTR (Australia/NZ)","anzctr.org.au"],["chictr","ChiCTR (China)","chictr.org.cn"],
+  ["jrct","jRCT (Japan)","jrct.niph.go.jp"],["ctri","CTRI (India)","ctri.nic.in"]]},
+ {name:"Radiation oncology societies — international & North America",items:[
+  ["astro","ASTRO","astro.org"],["aapm","AAPM (medical physics)","aapm.org"],
+  ["caro","CARO (Canada)","caro-acro.ca"],["ars","American Radium Society","americanradiumsociety.org"],
+  ["abs","American Brachytherapy Society","americanbrachytherapy.org"],
+  ["nrg","NRG Oncology (ex-RTOG)","nrgoncology.org"],
+  ["isrs","ISRS (radiosurgery)","isrsy.org"],["ptcog","PTCOG-NA (particle therapy)","ptcog-na.org"]]},
+ {name:"Radiation oncology societies — Asia-Pacific, Latin America, Africa",items:[
+  ["jastro","JASTRO (Japan)","jastro.or.jp"],["kosro","KOSRO (Korea)","kosro.or.kr"],
+  ["aroi","AROI (India)","aroi.org"],["ranzcr","RANZCR (Australia/NZ)","ranzcr.com"],
+  ["trog","TROG Cancer Research (ANZ)","trog.com.au"],
+  ["sbrt","SBRT (Brazil)","sbradioterapia.com.br"],
+  ["aortic","AORTIC (Africa)","aortic-africa.org"]]},
+ {name:"European RT societies & bodies",items:[
+  ["estro","ESTRO","estro.org"],["eortc_rt","EORTC","eortc.org"],
+  ["efomp","EFOMP (medical physics)","efomp.org"],["iaea","IAEA Human Health","iaea.org"],
+  ["icru","ICRU","icru.org"]]},
+ {name:"European national RT societies",items:[
+  ["degro","DEGRO (DE)","degro.org"],["sfro","SFRO (FR)","sfro.fr"],
+  ["airo","AIRO (IT)","radioterapiaitalia.it"],["seor","SEOR (ES)","seor.es"],
+  ["rcr","RCR Clinical Oncology (UK)","rcr.ac.uk"],["nvro","NVRO (NL)","nvro.nl"],
+  ["sasro","SASRO (CH)","sasro.ch"]]},
+ {name:"Radiation oncology & medical physics journals",items:[
+  ["greenjournal","Radiotherapy & Oncology","thegreenjournal.com"],
+  ["redjournal","IJROBP (Red Journal)","redjournal.org"],
+  ["practicalro","Practical Radiation Oncology","practicalradonc.org"],
+  ["advro","Advances in Radiation Oncology","advancesradonc.org"],
+  ["semro","Seminars in Radiation Oncology","semradonc.com"],
+  ["rojournal","Radiation Oncology (BMC)","ro-journal.biomedcentral.com"],
+  ["clinonc","Clinical Oncology (RCR)","clinicaloncologyonline.net"],
+  ["strahlen","Strahlentherapie und Onkologie","link.springer.com/journal/66"],
+  ["ctro","Clin Transl Radiat Oncol (ctRO)","sciencedirect.com/journal/clinical-and-translational-radiation-oncology"],
+  ["phiro","Phys Imaging Radiat Oncol (phiRO)","sciencedirect.com/journal/physics-and-imaging-in-radiation-oncology"],
+  ["brachyj","Brachytherapy","brachyjournal.com"],
+  ["rpor","Rep Pract Oncol Radiother","journals.viamedica.pl/rpor"],
+  ["roj","Radiation Oncology Journal (KR)","e-roj.org"],
+  ["jrr","Journal of Radiation Research","academic.oup.com/jrr"],
+  ["medphys","Medical Physics","aapm.onlinelibrary.wiley.com/journal/24734209"],
+  ["jacmp","J Appl Clin Med Phys","aapm.onlinelibrary.wiley.com/journal/15269914"],
+  ["pmb","Physics in Medicine & Biology","iopscience.iop.org/journal/0031-9155"]]},
+ {name:"Oncology journals",items:[
+  ["lanonc","Lancet Oncology","thelancet.com/journals/lanonc"],
+  ["jco","Journal of Clinical Oncology","ascopubs.org/journal/jco"],
+  ["jamaonc","JAMA Oncology","jamanetwork.com/journals/jamaoncology"],
+  ["annonc","Annals of Oncology","annalsofoncology.org"],
+  ["esmoopen","ESMO Open","esmoopen.com"],
+  ["ejc","European Journal of Cancer","ejcancer.com"],
+  ["nrclinonc","Nature Reviews Clinical Oncology","nature.com/nrclinonc"],
+  ["bjc","British Journal of Cancer","nature.com/bjc"],
+  ["jnci","JNCI","academic.oup.com/jnci"],
+  ["ccr","Clinical Cancer Research","aacrjournals.org/clincancerres"],
+  ["candisc","Cancer Discovery","aacrjournals.org/cancerdiscovery"],
+  ["caca","CA: A Cancer Journal for Clinicians","acsjournals.onlinelibrary.wiley.com/journal/15424863"],
+  ["actaonc","Acta Oncologica","medicaljournalssweden.se/actaoncologica"],
+  ["neuroonc","Neuro-Oncology","academic.oup.com/neuro-oncology"],
+  ["eururol","European Urology","europeanurology.com"]]},
+ {name:"General medical journals",items:[
+  ["nejm","NEJM","nejm.org"],["lancet","The Lancet","thelancet.com"],
+  ["bmj","BMJ","bmj.com"],["jama","JAMA","jamanetwork.com/journals/jama"],
+  ["natmed","Nature Medicine","nature.com/nm"],["nature","Nature","nature.com"],
+  ["science","Science","science.org"],["annim","Annals of Internal Medicine","acpjournals.org/journal/aim"],
+  ["plosmed","PLOS Medicine","journals.plos.org/plosmedicine"],
+  ["radiology","Radiology (RSNA)","pubs.rsna.org/journal/radiology"],
+  ["eurrad","European Radiology","link.springer.com/journal/330"]]},
+ {name:"European trial registries & research",items:[
+  ["ctis","EU CTIS","euclinicaltrials.eu"],
+  ["eudract","EU Clinical Trials Register","clinicaltrialsregister.eu"],
+  ["isrctn","ISRCTN","isrctn.com"],["drks","DRKS (DE)","drks.de"],
+  ["cordis","CORDIS (EU projects)","cordis.europa.eu"]]}
+];
+
+/* ---------- radiation-oncology scope ----------
+   Every query is ANDed with these terms (per selected language), and results
+   without any RT term in title/snippet are hidden unless the user reveals them. */
+const RT_TERMS={
+ en:["radiotherapy","radiation therapy","radiation oncology","radiosurgery","brachytherapy","SBRT","SABR","stereotactic","proton therapy","IMRT","VMAT","hypofractionat","chemoradiation","chemoradiotherapy","FLASH","dose escalation","radiation-induced"],
+ de:["Strahlentherapie","Radioonkologie","Bestrahlung","Brachytherapie","Radiochirurgie"],
+ fr:["radiothérapie","radiochirurgie","curiethérapie","protonthérapie"],
+ it:["radioterapia","radiochirurgia","brachiterapia","protonterapia"],
+ es:["radioterapia","radiocirugía","braquiterapia","protonterapia"],
+ ro:["radioterapie","radiochirurgie","brahiterapie","iradiere"],
+ hu:["sugárterápia","sugárkezelés","besugárzás","brachyterápia","radiosebészet"],
+ pt:["radioterapia","radiocirurgia","braquiterapia"],
+ ru:["лучевая терапия","радиотерапия","брахитерапия","радиохирургия"],
+ ja:["放射線治療","放射線療法","定位放射線","陽子線","重粒子線"],
+ zh:["放射治疗","放疗","立体定向","质子治疗","近距离治疗"],
+ ko:["방사선 치료","방사선치료","방사선요법","양성자 치료"],
+ nl:["radiotherapie","bestraling","brachytherapie","radiochirurgie"],
+ lb:["Strahlentherapie","radiothérapie"],
+ ca:["radioteràpia","braquiteràpia","radiocirurgia"],
+ eu:["erradioterapia","erradiazio"],
+ gl:["radioterapia","braquiterapia"],
+ mt:["radjoterapija"],
+ el:["ακτινοθεραπεία","βραχυθεραπεία","ακτινοχειρουργική"],
+ sv:["strålbehandling","strålterapi","brakyterapi"],
+ da:["strålebehandling","stråleterapi","brachyterapi"],
+ no:["strålebehandling","stråleterapi","brachyterapi"],
+ fi:["sädehoito","sädehoidon","brakyterapia"],
+ is:["geislameðferð"],
+ et:["kiiritusravi","brahhüteraapia"],
+ lv:["staru terapija","brahiterapija"],
+ lt:["spindulinė terapija","spindulinis gydymas","brachiterapija"],
+ pl:["radioterapia","napromienianie","brachyterapia","radiochirurgia"],
+ cs:["radioterapie","ozařování","brachyterapie","radiochirurgie"],
+ sk:["rádioterapia","ožarovanie","brachyterapia"],
+ sl:["radioterapija","obsevanje","brahiterapija"],
+ hr:["radioterapija","zračenje","brahiterapija"],
+ bs:["radioterapija","zračenje"],
+ sr:["radioterapija","зрачење","радиотерапија"],
+ mk:["радиотерапија","зрачење"],
+ sq:["radioterapi","rrezatim"],
+ bg:["лъчетерапия","лъчелечение","брахитерапия"],
+ uk:["променева терапія","радіотерапія","брахітерапія"],
+ be:["прамянёвая тэрапія","радыётэрапія"],
+ tr:["radyoterapi","ışın tedavisi","brakiterapi"],
+ ga:["radaiteiripe"],
+ cy:["radiotherapi"]
+};
+const LANG_GROUPS=[
+ {name:"British Isles",items:[["en","English"],["ga","Irish"],["cy","Welsh"]]},
+ {name:"Nordic",items:[["sv","Swedish"],["da","Danish"],["no","Norwegian"],["fi","Finnish"],["is","Icelandic"]]},
+ {name:"Western",items:[["de","German"],["fr","French"],["nl","Dutch"],["lb","Luxembourgish"]]},
+ {name:"Southern",items:[["it","Italian"],["es","Spanish"],["pt","Portuguese"],["ca","Catalan"],["eu","Basque"],["gl","Galician"],["el","Greek"],["mt","Maltese"]]},
+ {name:"Central",items:[["pl","Polish"],["cs","Czech"],["sk","Slovak"],["hu","Hungarian"],["sl","Slovene"]]},
+ {name:"Baltic",items:[["et","Estonian"],["lv","Latvian"],["lt","Lithuanian"]]},
+ {name:"South-East / Balkans",items:[["ro","Romanian"],["bg","Bulgarian"],["hr","Croatian"],["bs","Bosnian"],["sr","Serbian"],["mk","Macedonian"],["sq","Albanian"],["tr","Turkish"]]},
+ {name:"Eastern",items:[["uk","Ukrainian"],["be","Belarusian"],["ru","Russian"]]},
+ {name:"Asia",items:[["ja","Japanese"],["zh","Chinese"],["ko","Korean"]]}
+];
+const OLD_SOURCES=["brave","google","pubmed","europe_pmc","clinicaltrials","openalex","estro","eortc_rt","efomp","iaea","icru","greenjournal","rojournal","redjournal","practicalro","degro","sfro","airo","seor","rcr","nvro","sasro","ctis","eudract","isrctn","drks","cordis"];
+const OLD_LANGS=["en","de","fr","it","es","ro","hu","pt","ru","ja","zh","ko"];
+function buildLangs(){
+ $("#langGroups").innerHTML=LANG_GROUPS.map((g,i)=>`
+  <div id="lgrp${i}">
+   <div class="gname">${esc(g.name)}<button type="button" class="mini" data-all="lgrp${i}">All</button><button type="button" class="mini" data-none="lgrp${i}">None</button></div>
+   <div class="chips">${g.items.map(([c,n])=>`<label class="chip" title="${esc(n)}"><input type="checkbox" checked value="${c}">${c.toUpperCase()}<small>${esc(n)}</small></label>`).join("")}</div>
+  </div>`).join("");
+}
+function allLangCodes(){return LANG_GROUPS.flatMap(g=>g.items.map(i=>i[0]));}
+function updateLangCount(){$("#langCount").textContent=checked("langBox").length+" of "+allLangCodes().length+" selected";}
+const RT_ACRONYMS=["SBRT","SABR","IMRT","VMAT","FLASH","IGRT","SRS","HDR","LDR"];
+const reEsc=t=>t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+const RT_RE=new RegExp(Object.values(RT_TERMS).flat().filter(t=>!RT_ACRONYMS.includes(t))
+ .concat(["radiat","radio-onc","fractionat","hypofraction","radiotherap","radioterap","radiothérap","Strahlenther","sugárterápi","sugárkezel","besugárz","brachyterápi","brahiterapi","radioterapi","radiotherapi","strålbehandl","strålebehandl","strålterapi","stråleterapi","sädeho","kiiritusravi","staru terap","spindulin","napromieni","ozařov","ožarov","obsevan","zračenj","зрачењ","лъчетерап","лъчелеч","ακτινοθεραπ","променев","радіотерап","прамянёв","радыётэрап","radyoterap","ışın tedavi","geislameðferð","radaiteiripe","radjoterap","erradioterap","radioteràpi","rrezatim","brachyterap","brakyterap","brachiterap","brahiterap","брахитерап","брахітерап"])
+ .map(reEsc).join("|"),"i");
+// acronyms and dose units are matched case-sensitively, as whole words
+const RT_RE_CS=new RegExp("\\b("+RT_ACRONYMS.join("|")+")\\b|\\d\\s?Gy\\b");
+function isRT(x){const t=[x.title,x.snippet,x.source].join(" ");return RT_RE.test(t)||RT_RE_CS.test(t);}
+let showOffTopic=false;
+const DOMAIN_OF=Object.fromEntries(SOURCE_GROUPS.flatMap(g=>g.items).filter(i=>i[2]).map(i=>[i[0],i[2]]));
+function buildSources(){
+ $("#sourceGroups").innerHTML=SOURCE_GROUPS.map((g,i)=>`
+  <div id="grp${i}">
+   <div class="gname">${esc(g.name)}<button type="button" class="mini" data-all="grp${i}">All</button><button type="button" class="mini" data-none="grp${i}">None</button></div>
+   <div class="chips">${g.items.map(([id,label,dom,tag,off])=>
+    `<label class="chip" title="${esc(dom?"site:"+dom:"API connector"+(tag?" ("+tag+")":""))}"><input type="checkbox" ${off?"":"checked"} value="${esc(id)}">${esc(label)}${dom?"":`<small>${esc(tag||"API")}</small>`}</label>`).join("")}</div>
+  </div>`).join("");
+}
+function updateSrcCount(){$("#srcCount").textContent=checked("sourceBox").length+" selected";}
+buildSources();
+
+/* ---------- helpers ---------- */
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+function checked(boxId){return [...document.querySelectorAll("#"+boxId+" input[type=checkbox]:checked")].map(x=>x.value);}
+function setChecked(boxId,values){document.querySelectorAll("#"+boxId+" input[type=checkbox]").forEach(x=>x.checked=values.includes(x.value));}
+function setStatus(msg,isErr){const s=$("#status");s.textContent=msg;s.classList.toggle("err",!!isErr);}
+function norm(s){return String(s||"").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^\p{L}\p{N}]+/gu," ").trim();}
+function list(v){return v==null||v===""?[]:Array.isArray(v)?v:[v];}
+function dateOf(x){const a=String(x.published||""),b=String(x.updated||"");return a>b?a:b;}
+function typeOf(x){const t=String(x.source_type||"web").toLowerCase();return TYPES.includes(t)?t:"web";}
+function safeUrl(u){u=String(u||"");return /^https?:\/\//i.test(u)?u:"";}
+function cleanDoi(d){return String(d||"").trim().toLowerCase().replace(/^https?:\/\/(dx\.)?doi\.org\//,"").replace(/^doi:\s*/,"");}
+
+buildLangs();
+
+/* ---------- preferences ---------- */
+function savePrefs(){
+ store.set(PREF_KEY,JSON.stringify({
+  q:$("#q").value,days:$("#days").value,limit:$("#limit").value,
+  sources:checked("sourceBox"),langs:checked("langBox"),api:$("#api").value.trim(),
+  extra:$("#extraSites").value,langsKnown:allLangCodes(),
+  srcKnown:SOURCE_GROUPS.flatMap(g=>g.items.map(i=>i[0]))
+ }));
+ updateSrcCount();updateLangCount();
+}
+function loadPrefs(){
+ let p=null;try{p=JSON.parse(store.get(PREF_KEY)||"null")}catch(e){}
+ const legacyApi=store.get("oncologyRadarApiBase");
+ if(!p){if(legacyApi)$("#api").value=legacyApi;updateSrcCount();return;}
+ if(p.extra)$("#extraSites").value=p.extra;
+ if(p.q)$("#q").value=p.q;
+ if(p.days)$("#days").value=p.days;
+ if(p.limit)$("#limit").value=p.limit;
+ if(Array.isArray(p.sources)){
+  const known=Array.isArray(p.srcKnown)?p.srcKnown:OLD_SOURCES;
+  document.querySelectorAll("#sourceBox input[type=checkbox]").forEach(x=>{if(known.includes(x.value))x.checked=p.sources.includes(x.value);});
+ }
+ if(Array.isArray(p.langs)){
+  const known=Array.isArray(p.langsKnown)?p.langsKnown:OLD_LANGS;
+  document.querySelectorAll("#langBox input[type=checkbox]").forEach(x=>{if(known.includes(x.value))x.checked=p.langs.includes(x.value);});
+ }
+ $("#api").value=p.api||legacyApi||"";
+ updateSrcCount();
+}
+
+/* ---------- de-duplication (DOI → URL → title) ---------- */
+function dedupe(rows){
+ const index=new Map(),out=[];let merged=0;
+ for(const r of rows){
+  const keys=[];
+  const doi=cleanDoi(r.doi);if(doi)keys.push("doi:"+doi);
+  const u=safeUrl(r.url);if(u)keys.push("url:"+u.replace(/#.*$/,"").replace(/\/$/,"").toLowerCase());
+  const t=norm(r.title);if(t.length>25)keys.push("t:"+t);
+  let hit=keys.map(k=>index.get(k)).find(Boolean);
+  if(hit){
+   merged++;
+   for(const p of list(r.providers).concat(list(r.provider)))if(!hit._providers.includes(p))hit._providers.push(p);
+   if(r.source&&!hit._sources.includes(r.source))hit._sources.push(r.source);
+   for(const f of ["doi","url","published","updated","snippet","language"])if(!hit[f]&&r[f])hit[f]=r[f];
+  }else{
+   hit={...r,_providers:[...new Set(list(r.providers).concat(list(r.provider)))],_sources:r.source?[r.source]:[]};
+   out.push(hit);
+  }
+  keys.forEach(k=>index.set(k,hit));
+ }
+ return {rows:out,merged};
+}
+function ingest(rows){
+ const d=dedupe(Array.isArray(rows)?rows:[]);
+ data=d.rows;data.forEach(x=>x._rt=isRT(x));mergedCount=d.merged;typeFilter.clear();
+ buildFacets();render();showResults();
+}
+
+/* ---------- live connectors (run directly in the browser, no backend) ---------- */
+const LANG3={eng:"en",ger:"de",fre:"fr",spa:"es",ita:"it",por:"pt",rus:"ru",jpn:"ja",chi:"zh",kor:"ko",pol:"pl",dut:"nl",hun:"hu",rum:"ro",cze:"cs",slo:"sk",swe:"sv",dan:"da",nor:"no",fin:"fi",tur:"tr",gre:"el",ukr:"uk",bul:"bg",hrv:"hr",srp:"sr",slv:"sl",lit:"lt",lav:"lv",est:"et"};
+function lang2(v){v=Array.isArray(v)?v[0]:v;v=String(v||"").toLowerCase();return LANG3[v]||(v.length===2?v:"");}
+function stripTags(t){return String(t||"").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim();}
+function clip(t,n=320){t=stripTags(t);return t.length>n?t.slice(0,n).replace(/\s+\S*$/,"")+"…":t;}
+function ymdLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function slashDate(t){const m=String(t||"").match(/(\d{4})[\/-](\d{2})[\/-](\d{2})/);return m?`${m[1]}-${m[2]}-${m[3]}`:"";}
+const RT_QUERY_TERMS=['radiotherapy','"radiation therapy"','"radiation oncology"','radiosurgery','brachytherapy','SBRT','SABR','"stereotactic body radiotherapy"','"proton therapy"','chemoradiotherapy','chemoradiation','IMRT','VMAT','hypofractionated','"radiation-induced"'];
+function rtBoolean(topic){const rt="("+RT_QUERY_TERMS.join(" OR ")+")";return topic?`(${topic}) AND ${rt}`:rt;}
+// No AbortSignal or custom headers: some preview hosts proxy fetch() through postMessage,
+// which cannot carry them. Timeouts are handled with Promise.race instead.
+function withTimeout(p,ms,label){return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error(label||"timed out")),ms))]);}
+async function getJSON(url){
+ const r=await withTimeout(fetch(url),30000,"timed out after 30 s");
+ if(!r.ok)throw new Error("HTTP "+r.status+(r.status===429?" rate-limited":""));
+ return r.json();
+}
+
+async function qEuropePMC(c){
+ const q=`${rtBoolean(c.topic)} AND FIRST_PDATE:[${c.from} TO ${c.to}]`;
+ const base="https://www.ebi.ac.uk/europepmc/webservices/rest/search?format=json&resultType=core&pageSize="+Math.min(c.limit,1000)+"&query="+encodeURIComponent(q);
+ let j;
+ try{j=await getJSON(base+"&sort="+encodeURIComponent("P_PDATE_D desc"),c.signal);}
+ catch(e){if(e.name==="AbortError")throw e;j=await getJSON(base,c.signal);}
+ return (j.resultList&&j.resultList.result||[]).map(r=>({
+  title:stripTags(r.title),
+  source:(r.journalInfo&&r.journalInfo.journal&&r.journalInfo.journal.title)||r.journalTitle||(r.source==="PPR"?"Preprint":"Europe PMC"),
+  source_type:r.source==="PPR"?"preprint":"scientific",
+  language:lang2(r.language),published:r.firstPublicationDate||"",doi:r.doi||"",
+  url:r.pmid?`https://europepmc.org/article/MED/${r.pmid}`:(r.doi?`https://doi.org/${r.doi}`:`https://europepmc.org/article/${r.source}/${r.id}`),
+  snippet:clip(r.abstractText||r.authorString),provider:"europe_pmc"}));
+}
+
+function abstractFrom(inv){if(!inv)return"";const a=[];for(const[w,ps]of Object.entries(inv))for(const p of ps)a[p]=w;return a.filter(Boolean).join(" ");}
+async function qOpenAlex(c){
+ const url=`https://api.openalex.org/works?search=${encodeURIComponent(rtBoolean(c.topic))}&filter=from_publication_date:${c.from},to_publication_date:${c.to}&sort=publication_date:desc&per-page=${Math.min(c.limit,200)}`;
+ const j=await getJSON(url,c.signal);
+ return (j.results||[]).map(w=>{const loc=w.primary_location||{};return{
+  title:stripTags(w.display_name||w.title),
+  source:(loc.source&&loc.source.display_name)||"OpenAlex",
+  source_type:w.type==="preprint"?"preprint":"scientific",
+  language:lang2(w.language),published:w.publication_date||"",doi:w.doi||"",
+  url:loc.landing_page_url||w.doi||w.id,snippet:clip(abstractFrom(w.abstract_inverted_index)),provider:"openalex"};});
+}
+
+async function qCrossref(c){
+ const q=(c.topic?c.topic+" ":"")+"radiotherapy radiation therapy";
+ const url=`https://api.crossref.org/works?query.bibliographic=${encodeURIComponent(q)}&filter=from-pub-date:${c.from},until-pub-date:${c.to},type:journal-article&rows=${Math.min(c.limit,1000)}&select=DOI,title,container-title,published,URL,abstract,language`;
+ const j=await getJSON(url,c.signal);
+ return (j.message&&j.message.items||[]).map(it=>{
+  const dp=it.published&&it.published["date-parts"]&&it.published["date-parts"][0]||[];
+  const d=dp.length?[dp[0],String(dp[1]||1).padStart(2,"0"),String(dp[2]||1).padStart(2,"0")].join("-"):"";
+  return{title:stripTags((it.title||[])[0]),source:(it["container-title"]||[])[0]||"Crossref",source_type:"scientific",
+   language:lang2(it.language),published:d,doi:it.DOI||"",url:it.URL||(it.DOI?"https://doi.org/"+it.DOI:""),
+   snippet:clip(it.abstract),provider:"crossref"};});
+}
+
+async function qPubMed(c){
+ const eu="https://eutils.ncbi.nlm.nih.gov/entrez/eutils/";
+ const s=await getJSON(`${eu}esearch.fcgi?db=pubmed&retmode=json&sort=pub_date&retmax=${Math.min(c.limit,200)}&datetype=edat&mindate=${c.from.replace(/-/g,"/")}&maxdate=${c.to.replace(/-/g,"/")}&tool=rt_radar&term=${encodeURIComponent(rtBoolean(c.topic))}`,c.signal);
+ const ids=(s.esearchresult&&s.esearchresult.idlist)||[];
+ if(!ids.length)return[];
+ const j=await getJSON(`${eu}esummary.fcgi?db=pubmed&retmode=json&tool=rt_radar&id=${ids.join(",")}`,c.signal);
+ return ids.map(id=>j.result&&j.result[id]).filter(Boolean).map(r=>{
+  const doi=((r.articleids||[]).find(a=>a.idtype==="doi")||{}).value||"";
+  const ent=((r.history||[]).find(h=>h.pubstatus==="entrez")||{}).date;
+  const au=(r.authors||[]).slice(0,3).map(a=>a.name).join(", ")+((r.authors||[]).length>3?" et al.":"");
+  return{title:stripTags(r.title),source:r.fulljournalname||r.source||"PubMed",source_type:"scientific",
+   language:lang2(r.lang),published:slashDate(ent)||slashDate(r.sortpubdate),doi,
+   url:`https://pubmed.ncbi.nlm.nih.gov/${r.uid}/`,snippet:clip([au,r.source,r.pubdate].filter(Boolean).join(" · ")),provider:"pubmed"};});
+}
+
+async function qCTgov(c){
+ const base=`https://clinicaltrials.gov/api/v2/studies?format=json&pageSize=${Math.min(c.limit,1000)}&sort=LastUpdatePostDate:desc&query.term=${encodeURIComponent(rtBoolean(c.topic))}&filter.advanced=${encodeURIComponent(`AREA[LastUpdatePostDate]RANGE[${c.from},MAX]`)}`;
+ let j;
+ try{j=await getJSON(base+"&fields="+encodeURIComponent("NCTId,BriefTitle,OverallStatus,Phase,LeadSponsorName,Condition,LastUpdatePostDate,StudyFirstPostDate,BriefSummary"),c.signal);}
+ catch(e){if(e.name==="AbortError")throw e;j=await getJSON(base,c.signal);}
+ return (j.studies||[]).map(st=>{
+  const ps=st.protocolSection||{},id=ps.identificationModule||{},sm=ps.statusModule||{};
+  const sponsor=((ps.sponsorCollaboratorsModule||{}).leadSponsor||{}).name||"";
+  const phases=((ps.designModule||{}).phases||[]).join("/");
+  const cond=((ps.conditionsModule||{}).conditions||[]).slice(0,3).join(", ");
+  const summ=(ps.descriptionModule||{}).briefSummary||"";
+  return{title:id.briefTitle||id.nctId,source:"ClinicalTrials.gov"+(sponsor?" · "+sponsor:""),source_type:"trial",language:"en",
+   published:(sm.studyFirstPostDateStruct||{}).date||"",updated:(sm.lastUpdatePostDateStruct||{}).date||"",
+   url:`https://clinicaltrials.gov/study/${id.nctId}`,
+   snippet:clip([id.nctId,sm.overallStatus,phases,cond].filter(Boolean).join(" · ")+(summ?" — "+summ:"")),provider:"clinicaltrials"};});
+}
+
+async function qS2(c){
+ const q=(c.topic?c.topic+" ":"")+"radiotherapy";
+ const url=`https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(q)}&limit=${Math.min(c.limit,100)}&publicationDateOrYear=${c.from}:${c.to}&fields=${encodeURIComponent("title,venue,publicationDate,externalIds,url,abstract")}`;
+ const j=await getJSON(url,c.signal);
+ return (j.data||[]).map(p=>({title:p.title,source:p.venue||"Semantic Scholar",source_type:"scientific",language:"",
+  published:p.publicationDate||"",doi:(p.externalIds||{}).DOI||"",url:p.url,snippet:clip(p.abstract),provider:"semantic_scholar"}));
+}
+
+const DIRECT={pubmed:["PubMed",qPubMed],europe_pmc:["Europe PMC",qEuropePMC],openalex:["OpenAlex",qOpenAlex],
+ crossref:["Crossref",qCrossref],semantic_scholar:["Semantic Scholar",qS2],clinicaltrials:["ClinicalTrials.gov",qCTgov]};
+
+/* ---------- search ---------- */
+async function search(ev){
+ ev&&ev.preventDefault&&ev.preventDefault();
+ savePrefs();
+ const base=$("#api").value.trim().replace(/\/+$/,"");
+ const picked=checked("sourceBox"),languages=checked("langBox");
+ const extra=$("#extraSites").value.split(/[,\s]+/).map(s=>s.trim().toLowerCase().replace(/^https?:\/\//,"").replace(/\/.*$/,"")).filter(Boolean);
+ const sources=picked.filter(id=>!DOMAIN_OF[id]);
+ const sites=picked.filter(id=>DOMAIN_OF[id]).map(id=>({id,domain:DOMAIN_OF[id]}))
+  .concat(extra.map(d=>({id:"custom:"+d,domain:d})));
+ if(!sources.length&&!sites.length){setStatus("Select at least one source.",true);return;}
+ if(!languages.length){setStatus("Select at least one language.",true);return;}
+ const days=Number($("#days").value);
+ const now=new Date(),fromD=new Date(now);fromD.setDate(fromD.getDate()-days);
+ const from=ymdLocal(fromD),to=ymdLocal(now);
+ const topic=$("#q").value.trim(),limit=Number($("#limit").value)||25;
+
+ controller=new AbortController();abortReason="";
+ const timer=setTimeout(()=>{abortReason="timeout";controller.abort();},90000);
+ $("#goBtn").disabled=true;
+ const t0=performance.now();
+ try{
+  if(base){
+   const scope_terms=Object.fromEntries(languages.filter(l=>RT_TERMS[l]).map(l=>[l,RT_TERMS[l]]));
+   const payload={query:topic,scope:"radiation_oncology",scope_terms,composed_query:rtBoolean(topic),
+    days,from_date:from,limit,sources,sites,languages};
+   setStatus(`Searching ${sources.length} index(es) + ${sites.length} site(s) via backend…`);
+   const r=await withTimeout(fetch(base+"/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}),90000,"backend timed out after 90 s");
+   if(!r.ok)throw new Error("HTTP "+r.status);
+   const j=await r.json();
+   ingest(j.results||[]);
+   const errs=j.errors&&typeof j.errors==="object"?Object.entries(j.errors):[];
+   setStatus("Done in "+((performance.now()-t0)/1000).toFixed(1)+" s."+(errs.length?" Failed: "+errs.map(([k,v])=>k+" ("+v+")").join(", "):""),errs.length>0);
+  }else{
+   const live=sources.filter(id=>DIRECT[id]);
+   const needBackend=picked.length+extra.length-live.length;
+   if(!live.length){setStatus("None of the selected sources can be searched without a backend. Tick PubMed, Europe PMC, OpenAlex, Crossref, Semantic Scholar or ClinicalTrials.gov.",true);return;}
+   setStatus(`Searching ${live.map(id=>DIRECT[id][0]).join(", ")}…`);
+   const ctx={topic,from,to,limit,signal:controller.signal};
+   const settled=await Promise.allSettled(live.map(id=>DIRECT[id][1](ctx)));
+   if(controller.signal.aborted)throw Object.assign(new Error("aborted"),{name:"AbortError"});
+   const rows=[],failed=[];
+   settled.forEach((s,i)=>{const name=DIRECT[live[i]][0];
+    if(s.status==="fulfilled")rows.push(...s.value);
+    else failed.push(name+" ("+(s.reason&&s.reason.message==="Failed to fetch"?"blocked or offline":(s.reason&&s.reason.message||"error"))+")");});
+   ingest(rows);
+   const ok=live.length-failed.length;
+   if(!ok&&failed.every(f=>f.includes("blocked or offline"))){
+    setStatus("This viewer blocks internet access, so no database could be reached. Download the file and open it in Chrome, Edge or Firefox on your computer, then press Search again.",true);
+    return;
+   }
+   setStatus(`Live results from ${ok} of ${live.length} source(s) in ${((performance.now()-t0)/1000).toFixed(1)} s.`
+    +(failed.length?` Not reached: ${failed.join(", ")}.`:"")
+    +(needBackend>0?` ${needBackend} other selected source(s) need the backend.`:""),failed.length>0&&!ok);
+  }
+ }catch(e){
+  if(e.name==="AbortError")setStatus(abortReason==="timeout"?"Search timed out after 90 s.":"Search stopped.",true);
+  else setStatus("Search failed: "+e.message,true);
+ }finally{
+  clearTimeout(timer);controller=null;
+  $("#goBtn").disabled=false;
+ }
+}
+
+/* ---------- facets & rendering ---------- */
+function buildFacets(){
+ const counts={};data.forEach(x=>{const t=typeOf(x);counts[t]=(counts[t]||0)+1;});
+ $("#typeChips").innerHTML=TYPES.filter(t=>counts[t]).map(t=>
+  `<button type="button" class="typechip" data-type="${t}" aria-pressed="false"><span class="badge t-${t}">${t}</span>${counts[t]}</button>`).join("");
+ const langs=[...new Set(data.map(x=>String(x.language||"").toLowerCase()).filter(Boolean))].sort();
+ const cur=$("#langFilter").value;
+ $("#langFilter").innerHTML='<option value="">All languages</option>'+langs.map(l=>`<option value="${esc(l)}">${esc(l.toUpperCase())}</option>`).join("");
+ if(langs.includes(cur))$("#langFilter").value=cur;
+}
+let cappedCount=0;
+function provKey(x){return String(x._providers[0]||x._sources[0]||"other").toLowerCase();}
+function newestFirst(a,b){const da=dateOf(a),db=dateOf(b);if(!da!==!db)return da?-1:1;return db.localeCompare(da);}
+function visibleRows(){
+ const lim=Number($("#limit").value)||25;
+ const groups=new Map();
+ for(const x of filteredRows()){const k=provKey(x);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(x);}
+ const kept=[];cappedCount=0;
+ for(const g of groups.values()){g.sort(newestFirst);kept.push(...g.slice(0,lim));cappedCount+=Math.max(0,g.length-lim);}
+ return sortRows(kept);
+}
+function cutoffDate(){
+ const days=Number($("#days").value)||7;
+ const t=new Date();t.setHours(0,0,0,0);t.setDate(t.getDate()-days);
+ return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
+}
+let outOfWindow=0;
+function filteredRows(){
+ const f=norm($("#filter").value),lang=$("#langFilter").value,cut=cutoffDate();
+ outOfWindow=0;
+ return data.filter(x=>{
+  const dt=dateOf(x).slice(0,10);
+  if(dt&&dt<cut){outOfWindow++;return false;}
+  if(!showOffTopic&&!x._rt)return false;
+  if(typeFilter.size&&!typeFilter.has(typeOf(x)))return false;
+  if(lang&&String(x.language||"").toLowerCase()!==lang)return false;
+  if(f&&!norm([x.title,x.snippet,x._sources.join(" ")].join(" ")).includes(f))return false;
+  return true;
+ });
+}
+function sortRows(rows){
+ const mode=$("#sort").value;
+ return rows.sort((a,b)=>{
+  if(mode==="title")return String(a.title||"").localeCompare(String(b.title||""));
+  if(mode==="source")return String(a._sources[0]||"").localeCompare(String(b._sources[0]||""));
+  const da=dateOf(a),db=dateOf(b);
+  if(!da!==!db)return da?-1:1;           // undated always last
+  return mode==="date-asc"?da.localeCompare(db):db.localeCompare(da);
+ });
+}
+function render(){
+ const rows=visibleRows();
+ $("#count").textContent=`${rows.length} result${rows.length===1?"":"s"}`;
+ $("#windowNote").textContent=outOfWindow?`· ${outOfWindow} older than the date window`:"";
+ $("#capNote").textContent=cappedCount?`· ${cappedCount} over the ${$("#limit").value}/source limit`:"";
+ $("#mergedNote").textContent=mergedCount?`· ${mergedCount} duplicate${mergedCount===1?"":"s"} merged`:"";
+ const off=data.filter(x=>!x._rt).length;
+ $("#offTopic").hidden=!off;
+ $("#offTopic").textContent=showOffTopic?`Hide ${off} non-RT`:`Show ${off} non-RT hidden`;
+ $("#csvBtn").disabled=$("#jsonBtn").disabled=!rows.length;
+ if(!data.length){$("#results").innerHTML='<p class="note">No results.</p>';return;}
+ $("#results").innerHTML=rows.map(x=>{
+  const t=typeOf(x),u=safeUrl(x.url),doi=cleanDoi(x.doi);
+  const title=u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(x.title||"(untitled)")}</a>`:esc(x.title||"(untitled)");
+  const meta=[
+   `<span class="badge t-${t}">${t}</span>`,
+   x._sources.length?esc(x._sources.join(" · ")):"",
+   x.language?esc(String(x.language).toUpperCase()):"",
+   x.published?"published "+esc(x.published):"",
+   x.updated&&x.updated!==x.published?"updated "+esc(x.updated):"",
+   doi?`<a href="https://doi.org/${esc(doi)}" target="_blank" rel="noopener noreferrer">doi:${esc(doi)}</a>`:""
+  ].filter(Boolean).join("");
+  const prov=x._providers.length?`<div class="meta">via ${esc(x._providers.join(", "))}</div>`:"";
+  return `<article class="result"><div class="title">${title}</div><div class="meta">${meta}</div>${x.snippet?`<div class="snippet">${esc(x.snippet)}</div>`:""}${prov}</article>`;
+ }).join("")||'<p class="note">No results match the current filters.</p>';
+}
+
+/* ---------- export ---------- */
+function download(name,text,type){
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;
+ document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function stamp(){return new Date().toISOString().slice(0,16).replace(/[:T]/g,"-");}
+function exportCSV(){
+ const cols=["title","sources","source_type","language","published","updated","doi","url","providers","snippet"];
+ const cell=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+ const lines=[cols.join(",")].concat(visibleRows().map(x=>[
+  x.title,x._sources.join("; "),typeOf(x),x.language,x.published,x.updated,cleanDoi(x.doi),x.url,x._providers.join("; "),x.snippet
+ ].map(cell).join(",")));
+ download(`rt-radar-${stamp()}.csv`,"\ufeff"+lines.join("\r\n"),"text/csv;charset=utf-8");
+}
+function exportJSON(){
+ const rows=visibleRows().map(({_sources,_providers,...x})=>({...x,sources:_sources,providers:_providers}));
+ download(`rt-radar-${stamp()}.json`,JSON.stringify({query:$("#q").value,exported:new Date().toISOString(),results:rows},null,2),"application/json");
+}
+
+/* ---------- wiring ---------- */
+$("#goBtn").addEventListener("click",search);
+$("#q").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();search();}});
+function showResults(){const el=$("#results").closest(".panel");if(el&&el.scrollIntoView)el.scrollIntoView({behavior:"smooth",block:"start"});}
+document.querySelectorAll("[data-all],[data-none]").forEach(b=>b.addEventListener("click",()=>{
+ const box=b.dataset.all||b.dataset.none;
+ document.querySelectorAll("#"+box+" input[type=checkbox]").forEach(x=>x.checked=!!b.dataset.all);
+ savePrefs();
+}));
+document.querySelectorAll("#sourceBox input,#langBox input,#days,#limit,#api,#extraSites").forEach(el=>el.addEventListener("change",savePrefs));
+$("#typeChips").addEventListener("click",e=>{
+ const b=e.target.closest(".typechip");if(!b)return;
+ const t=b.dataset.type;typeFilter.has(t)?typeFilter.delete(t):typeFilter.add(t);
+ b.setAttribute("aria-pressed",typeFilter.has(t));render();
+});
+$("#offTopic").addEventListener("click",()=>{showOffTopic=!showOffTopic;render();});
+$("#filter").addEventListener("input",render);
+$("#langFilter").addEventListener("change",render);
+$("#sort").addEventListener("change",render);
+$("#limit").addEventListener("change",render);
+$("#days").addEventListener("change",render);
+$("#csvBtn").addEventListener("click",exportCSV);
+$("#jsonBtn").addEventListener("click",exportJSON);
+loadPrefs();updateLangCount();
+</script>
+</body>
+</html>
